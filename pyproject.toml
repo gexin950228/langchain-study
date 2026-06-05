@@ -1,0 +1,29 @@
+[project]
+name = "langchain-study"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fitz>=0.0.1.dev2",
+    "frontend>=0.0.3",
+    "langchain-community>=0.4.2",
+    "langchain-core>=1.4.0",
+    "openai>=2.38.0",
+    "pillow>=12.2.0",
+    "pypdf>=6.12.2",
+    "pymupdf>=1.24.0",
+    "ipython>=9.13.0",
+    "zhipuai>=2.1.5.20250825",
+    "langchain-openai>=1.2.2",
+    "beautifulsoup4>=4.14.3",
+    "unstructured>=0.22.31",
+    "tqdm>=4.67.3",
+    "openpyxl>=3.1.5",
+    "langchain>=1.3.2",
+    "azure-ai-documentintelligence>=1.0.2",
+    "langchain-text-splitters>=1.1.2",
+    "langchain-zhipu",
+]
+[tool.uv]
+index-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
