@@ -3,6 +3,7 @@ import re
 import warnings
 # 忽略langchain-community过时警告
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+import argparse
 from langchain_community.embeddings.zhipuai import ZhipuAIEmbeddings # type: ignore
 from langchain_community.document_loaders import Docx2txtLoader # pyright: ignore[reportMissingImports]
 from langchain_experimental.text_splitter import SemanticChunker # pyright: ignore[reportMissingImports]
@@ -97,7 +98,7 @@ def search_project_contracts(query: str, collection_name: str = "embedding_demo"
     """检索项目组合同相关的信息（独立函数）"""
     # 创建embedding对象
     embedding = ZhipuAIEmbeddings(model="text_embedding")
-    
+
     # 获取查询向量
     try:
         query_embedding = embedding.embed_query(query)
@@ -210,6 +211,9 @@ if __name__ == '__main__':
         print("\n数据已成功存入 Milvus!")
         
         # 调用检索函数搜索项目组联系人信息
-        search_project_contracts("JDK怎么安装", collection_name=collection_name, limit=5)
+        parser = argparse.ArgumentParser(description="RAG检索问答")
+        parser.add_argument("query", nargs="?", default="JDK怎么安装", help="要查询的问题")
+        args = parser.parse_args()
+        search_project_contracts(args.query, collection_name=collection_name, limit=5)
     else:
         print(f"文件不存在: {filepath}")
