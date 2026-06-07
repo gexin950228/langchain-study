@@ -1,103 +1,101 @@
 import os
+import re
 import warnings
-# 忽略 langchain-community 过时警告
+# 忽略langchain-community过时警告
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-from langchain_community.embeddings.zhipuai import ZhipuAIEmbeddings
-from langchain_community.document_loaders import Docx2txtLoader
-from langchain_experimental.text_splitter import SemanticChunker
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, SystemMessage
-from pymilvus import MilvusClient, DataType
-from pymilvus.milvus_client.index import IndexParams
+from langchain_community.embeddings.zhipuai import ZhipuAIEmbeddings # type: ignore
+from langchain_community.document_loaders import Docx2txtLoader # pyright: ignore[reportMissingImports]
+from langchain_experimental.text_splitter import SemanticChunker # pyright: ignore[reportMissingImports]
+from langchain_core.messages import HumanMessage, SystemMessage # pyright: ignore[reportMissingImports]
+from pymilvus import MilvusClient, DataType # pyright: ignore[reportMissingImports]
+from pymilvus.milvus_client.index import IndexParams # pyright: ignore[reportMissingImports]
+from langchain_openai import ChatOpenAI # type: ignore
 # 设置智谱API密钥
 os.environ["ZHIPUAI_API_KEY"] = "69695283f7034931b87220e76ef4f6f4.m11eKchDK9Ac7ZIe"
 # 智谱API限制：每次最多处理64条
 BATCH_SIZE = 64
+# 批量获取文本向量
 def get_batch_embeddings(texts: list) -> list:
     """批量获取文本向量（分批处理）"""
     embedding = ZhipuAIEmbeddings(model="text_embedding")
     all_vectors = []
- 
+    
     for i in range(0, len(texts), BATCH_SIZE):
         batch = texts[i:i+BATCH_SIZE]
         print(f"处理第 {i//BATCH_SIZE + 1} 批，共 {len(batch)} 条")
         vectors = embedding.embed_documents(batch)
         all_vectors.extend(vectors)
-    
+        
     return all_vectors
-
-# 修改 save_to_milvus 函数，创建包含 text 字段的集合
+# 修改save_to_milvus函数，创建包含text字段的集合
 def save_to_milvus(texts: list, embeddings: list, collection_name: str = "embedding_demo"):
-    """将文本和向量存入 Milvus"""
-    try:
-        # 连接 Milvus（使用 HTTP 协议，端口 19530）
+    """将文本向量保存到Milvus"""
+    try: 
+        # 连接Milvus数据库（使用http协议，端口19530）
         client = MilvusClient(
             uri="http://172.27.176.25:19530",
             user="root",
-            password="ufa4A$hiTyTeP@V$a"
+            password="69695283f7034931b87220e76ef4f6f4.m11eKchDK9Ac7ZIe",
         )
-        print("成功连接到 Milvus!")
+        print("连接Milvus成功")
         
-        # 检查集合是否存在，如果存在则删除
+        # 检查集合是否存在,如果存在则删除
         if client.has_collection(collection_name):
             client.drop_collection(collection_name)
-            print(f"已删除已存在的集合: {collection_name}")
-        
-        # 创建包含 text 字段的集合
+            print(f"删除集合 {collection_name} 成功")
+            
+        # 创建包含text的字段集合
         schema = client.create_schema(auto_id=False)
         schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
         schema.add_field(field_name="text", datatype=DataType.VARCHAR, max_length=65535)
         schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=len(embeddings[0]))
         
-        client.create_collection(collection_name=collection_name, schema=schema)
-        print(f"已创建集合: {collection_name}")
+        client.create_collection(collection_name, schema=schema)
+        print(f"创建集合 {collection_name} 成功")
         
-        # 准备数据（包含 text 字段）
+        # 准备数据（包含text字段）
         data = [
             {
                 "id": i,
                 "text": texts[i],
-                "vector": embeddings[i]
+                "vector": embeddings[i],
             }
             for i in range(len(texts))
         ]
         
         # 插入数据
-        result = client.insert(collection_name=collection_name, data=data)
+        result = client.insert(collection_name, data=data)
         print(f"已插入 {len(data)} 条数据（包含文本内容），插入结果: {result}")
         
-        # 为向量字段创建索引（Milvus 需要先创建索引才能加载和搜索）
+        # 为向量字段创建索引（Milvus需要索引才能加载和搜索）
         index_params = IndexParams()
         index_params.add_index(
             field_name="vector",
             index_type="IVF_FLAT",
             metric_type="L2",
             params={"nlist": 128}
-        ) 
+        )
         client.create_index(
             collection_name=collection_name,
-            index_params=index_params
+            index_params=index_params,  
         )
-        print(f"已为向量字段创建索引")
-        # 加载集合到内存（Milvus 需要先加载才能搜索）
-        client.load_collection(collection_name=collection_name)
+        
+        # 加载集合到内存（Milvus需要先加载才能检索)
+        client.load_collection(collection_name=collection_name  )
         print(f"集合已加载到内存")
         
         # 查看集合统计信息
         stats = client.get_collection_stats(collection_name)
-        print(f"集合统计信息: {stats}")
+        print(f"集合 {collection_name} 统计信息: {stats}")
         
     except Exception as e:
-        print(f"连接 Milvus 失败: {e}")
+        print(f"连接Milvus失败: {e}")
         print("将使用本地检索模式")
-
-
-# 创建向量检索函数
-def search_project_contacts(query: str, limit: int = 5):
-    """检索项目组联系人相关的信息（独立函数）"""
-    print(f"\n=== 检索项目组联系人相关信息 ===")
-    
-    # 创建 embedding 对象（使用正确的模型名称）
+        
+#  创建向量检索函数
+def search_project_contracts(query: str, collection_name: str = "embedding_demo", limit: int = 5):
+    """检索项目组合同相关的信息（独立函数）"""
+    # 创建embedding对象
     embedding = ZhipuAIEmbeddings(model="text_embedding")
     
     # 获取查询向量
@@ -107,16 +105,16 @@ def search_project_contacts(query: str, limit: int = 5):
         print(f"向量化查询失败: {e}")
         return
     
-    # 连接 Milvus
+    # 连接Milvus
     client = MilvusClient(
         uri="http://172.27.176.25:19530",
         user="root",
         password="ufa4A$hiTyTeP@V$a"
     )
     
-    # 搜索 Milvus
+    # 搜索Milvus
     results = client.search(
-        collection_name="embedding_demo",
+        collection_name=collection_name,
         data=[query_embedding],
         limit=limit,
         output_fields=["text"],
@@ -126,7 +124,7 @@ def search_project_contacts(query: str, limit: int = 5):
     
     # 收集检索结果作为上下文
     print(f"查询关键词: '{query}'")
-    print(f"找到 {len(results[0])} 条相关结果:\n")
+    print(f"找到 {len(results[0])} 条相关结果")
     
     context_texts = []
     for i, result in enumerate(results[0]):
@@ -136,14 +134,14 @@ def search_project_contacts(query: str, limit: int = 5):
         print(f"{i+1}. 相似度: {1 - distance:.4f}")
         print(f"   内容: {text}")
         print()
-    
+        
     # 将检索结果和问题发送给大模型
     context = "\n\n".join(context_texts)
     
     llm = ChatOpenAI(
         model="GLM-5V-Turbo",
         api_key=os.environ["ZHIPUAI_API_KEY"],
-        base_url="https://open.bigmodel.cn/api/paas/v4"
+        base_url="https://open.bigmodel.cn/api/paas/v4",
     )
     
     messages = [
@@ -152,18 +150,34 @@ def search_project_contacts(query: str, limit: int = 5):
     ]
     
     response = llm.invoke(messages)
-    print(f"\n=== GLM 大模型回答 ===")
-    print(response.content)
-
-if __name__ == "__main__":
-    pwd = os.getcwd()
-    filepath_path = os.path.join(pwd, "files\\集团智慧双碳管理系统_运维手册.docx")
+    print(f"\n === GLM大模型回答 ===")
+    print(f"大模型回答: {response.content}")
     
-    if os.path.exists(filepath_path):
-        print(f"文件路径: {filepath_path}")
+if __name__ == '__main__':
+    pwd = os.getcwd()
+    filepath = os.path.join(pwd, "files\\集团智慧双碳管理系统_系统实施安装手册.docx")
+
+    if os.path.exists(filepath):
+        print(f"文件路径: {filepath}")
+        
+        # 从文件名提取集合名（翻译为英文）
+        filename = os.path.basename(filepath)
+        raw_name = os.path.splitext(filename)[0]
+        translator = ChatOpenAI(
+            model="GLM-5V-Turbo",
+            api_key=os.environ["ZHIPUAI_API_KEY"],
+            base_url="https://open.bigmodel.cn/api/paas/v4",
+        )
+        translate_msg = [
+            SystemMessage(content="You are a translator. Translate the given Chinese text to English. Output ONLY the English translation, using underscores instead of spaces, all lowercase. No explanation."),
+            HumanMessage(content=raw_name)
+        ]
+        translated = translator.invoke(translate_msg).content.strip()
+        collection_name = re.sub(r'[^a-z0-9_]', '_', translated.lower())
+        print(f"Milvus集合名: {collection_name} (源自: {raw_name})")
         
         # 读取 docx 文件内容
-        loader = Docx2txtLoader(filepath_path)
+        loader = Docx2txtLoader(filepath)
         docs = loader.load()
         content = docs[0].page_content
         
@@ -192,10 +206,10 @@ if __name__ == "__main__":
         
         # 将向量存入 Milvus
         print("\n正在将向量存入 Milvus...")
-        save_to_milvus(paragraphs, embeddings)
+        save_to_milvus(paragraphs, embeddings, collection_name=collection_name)
         print("\n数据已成功存入 Milvus!")
         
         # 调用检索函数搜索项目组联系人信息
-        search_project_contacts("redis服务的地址和启动方式是什么", 5)
+        search_project_contracts("JDK怎么安装", collection_name=collection_name, limit=5)
     else:
-        print(f"文件不存在: {filepath_path}")
+        print(f"文件不存在: {filepath}")
