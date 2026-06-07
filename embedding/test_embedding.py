@@ -1,6 +1,7 @@
 import os
 import re
 import warnings
+from pypinyin import lazy_pinyin
 # 忽略langchain-community过时警告
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 import argparse
@@ -130,11 +131,7 @@ def search_project_contracts(query: str, collection_name: str = "embedding_demo"
     context_texts = []
     for i, result in enumerate(results[0]):
         text = result["entity"].get("text", "无文本内容")
-        distance = result["distance"]
-        context_texts.append(text)
-        print(f"{i+1}. 相似度: {1 - distance:.4f}")
-        print(f"   内容: {text}")
-        print()
+        context_texts.append(text)    
         
     # 将检索结果和问题发送给大模型
     context = "\n\n".join(context_texts)
@@ -161,20 +158,12 @@ if __name__ == '__main__':
     if os.path.exists(filepath):
         print(f"文件路径: {filepath}")
         
-        # 从文件名提取集合名（翻译为英文）
+        # 从文件名提取集合名（中文转拼音）
         filename = os.path.basename(filepath)
         raw_name = os.path.splitext(filename)[0]
-        translator = ChatOpenAI(
-            model="GLM-5V-Turbo",
-            api_key=os.environ["ZHIPUAI_API_KEY"],
-            base_url="https://open.bigmodel.cn/api/paas/v4",
-        )
-        translate_msg = [
-            SystemMessage(content="You are a translator. Translate the given Chinese text to English. Output ONLY the English translation, using underscores instead of spaces, all lowercase. No explanation."),
-            HumanMessage(content=raw_name)
-        ]
-        translated = translator.invoke(translate_msg).content.strip()
-        collection_name = re.sub(r'[^a-z0-9_]', '_', translated.lower())
+        pinyin_parts = lazy_pinyin(raw_name)
+        pinyin_name = '_'.join(pinyin_parts).lower()
+        collection_name = re.sub(r'[^a-z0-9_]', '_', pinyin_name)
         print(f"Milvus集合名: {collection_name} (源自: {raw_name})")
         
         # 读取 docx 文件内容
@@ -211,9 +200,10 @@ if __name__ == '__main__':
         print("\n数据已成功存入 Milvus!")
         
         # 调用检索函数搜索项目组联系人信息
-        parser = argparse.ArgumentParser(description="RAG检索问答")
-        parser.add_argument("query", nargs="?", default="JDK怎么安装", help="要查询的问题")
-        args = parser.parse_args()
-        search_project_contracts(args.query, collection_name=collection_name, limit=5)
+        query = input("\n请输入您的问题: ").strip()
+        if not query:
+            query = "JDK怎么安装"
+            print(f"未输入问题，使用默认查询: {query}")
+        search_project_contracts(query, collection_name=collection_name, limit=5)
     else:
         print(f"文件不存在: {filepath}")
