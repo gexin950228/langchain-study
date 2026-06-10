@@ -5,7 +5,14 @@ build/
 dist/
 wheels/
 *.egg-info
+
+# Data files directory
 files/
+files/**/*
+file/
+file/**/*
 
 # Virtual environments
 .venv
+.env
+.env.local
