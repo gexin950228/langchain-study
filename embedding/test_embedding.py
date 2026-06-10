@@ -9,6 +9,7 @@ from langchain_community.embeddings.zhipuai import ZhipuAIEmbeddings # type: ign
 from langchain_community.document_loaders import Docx2txtLoader # pyright: ignore[reportMissingImports]
 from langchain_experimental.text_splitter import SemanticChunker # pyright: ignore[reportMissingImports]
 from langchain_core.messages import HumanMessage, SystemMessage # pyright: ignore[reportMissingImports]
+<<<<<<< HEAD
 from langchain_openai import ChatOpenAI # type: ignore
 
 # 导入 utils 模块中的 Milvus 工具函数
@@ -16,6 +17,11 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.milvus_utils import save_to_milvus, search_milvus
 
+=======
+from pymilvus import MilvusClient, DataType # pyright: ignore[reportMissingImports]
+from pymilvus.milvus_client.index import IndexParams # pyright: ignore[reportMissingImports]
+from langchain_openai import ChatOpenAI # type: ignore
+>>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
 # 设置智谱API密钥
 os.environ["ZHIPUAI_API_KEY"] = "69695283f7034931b87220e76ef4f6f4.m11eKchDK9Ac7ZIe"
 # 智谱API限制：每次最多处理64条
@@ -33,9 +39,78 @@ def get_batch_embeddings(texts: list) -> list:
         all_vectors.extend(vectors)
         
     return all_vectors
+<<<<<<< HEAD
 # 使用 utils/milvus_utils 中的 save_to_milvus 函数（已通过 import 导入）
         
 # 创建向量检索函数（使用 utils/milvus_utils 中的 search_milvus 函数）
+=======
+# 修改save_to_milvus函数，创建包含text字段的集合
+def save_to_milvus(texts: list, embeddings: list, collection_name: str = "embedding_demo"):
+    """将文本向量保存到Milvus"""
+    try: 
+        # 连接Milvus数据库（使用http协议，端口19530）
+        client = MilvusClient(
+            uri="http://172.27.176.25:19530",
+            user="root",
+            password="69695283f7034931b87220e76ef4f6f4.m11eKchDK9Ac7ZIe",
+        )
+        print("连接Milvus成功")
+        
+        # 检查集合是否存在,如果存在则删除
+        if client.has_collection(collection_name):
+            client.drop_collection(collection_name)
+            print(f"删除集合 {collection_name} 成功")
+            
+        # 创建包含text的字段集合
+        schema = client.create_schema(auto_id=False)
+        schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
+        schema.add_field(field_name="text", datatype=DataType.VARCHAR, max_length=65535)
+        schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=len(embeddings[0]))
+        
+        client.create_collection(collection_name, schema=schema)
+        print(f"创建集合 {collection_name} 成功")
+        
+        # 准备数据（包含text字段）
+        data = [
+            {
+                "id": i,
+                "text": texts[i],
+                "vector": embeddings[i],
+            }
+            for i in range(len(texts))
+        ]
+        
+        # 插入数据
+        result = client.insert(collection_name, data=data)
+        print(f"已插入 {len(data)} 条数据（包含文本内容），插入结果: {result}")
+        
+        # 为向量字段创建索引（Milvus需要索引才能加载和搜索）
+        index_params = IndexParams()
+        index_params.add_index(
+            field_name="vector",
+            index_type="IVF_FLAT",
+            metric_type="L2",
+            params={"nlist": 128}
+        )
+        client.create_index(
+            collection_name=collection_name,
+            index_params=index_params,  
+        )
+        
+        # 加载集合到内存（Milvus需要先加载才能检索)
+        client.load_collection(collection_name=collection_name  )
+        print(f"集合已加载到内存")
+        
+        # 查看集合统计信息
+        stats = client.get_collection_stats(collection_name)
+        print(f"集合 {collection_name} 统计信息: {stats}")
+        
+    except Exception as e:
+        print(f"连接Milvus失败: {e}")
+        print("将使用本地检索模式")
+        
+#  创建向量检索函数
+>>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
 def search_project_contracts(query: str, collection_name: str = "embedding_demo", limit: int = 5):
     """检索项目组合同相关的信息（独立函数）"""
     # 创建embedding对象
@@ -48,6 +123,7 @@ def search_project_contracts(query: str, collection_name: str = "embedding_demo"
         print(f"向量化查询失败: {e}")
         return
     
+<<<<<<< HEAD
     # 使用 utils/milvus_utils 中的 search_milvus 函数搜索
     results = search_milvus(query_embedding, collection_name=collection_name, limit=limit)
     
@@ -60,6 +136,34 @@ def search_project_contracts(query: str, collection_name: str = "embedding_demo"
         text = result["text"]
         context_texts.append(text)    
     
+=======
+    # 连接Milvus
+    client = MilvusClient(
+        uri="http://172.27.176.25:19530",
+        user="root",
+        password="ufa4A$hiTyTeP@V$a"
+    )
+    
+    # 搜索Milvus
+    results = client.search(
+        collection_name=collection_name,
+        data=[query_embedding],
+        limit=limit,
+        output_fields=["text"],
+        anns_field="vector",
+        search_params={"nprobe": 10}
+    )
+    
+    # 收集检索结果作为上下文
+    print(f"查询关键词: '{query}'")
+    print(f"找到 {len(results[0])} 条相关结果")
+    
+    context_texts = []
+    for i, result in enumerate(results[0]):
+        text = result["entity"].get("text", "无文本内容")
+        context_texts.append(text)    
+        
+>>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
     # 将检索结果和问题发送给大模型
     context = "\n\n".join(context_texts)
     

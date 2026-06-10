@@ -14,6 +14,7 @@ from langchain_experimental.text_splitter import SemanticChunker
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+<<<<<<< HEAD
 from pymilvus import DataType
 from pymilvus.milvus_client.index import IndexParams
 
@@ -24,6 +25,16 @@ from utils.milvus_utils import get_milvus_client
 
 os.environ["ZHIPUAI_API_KEY"] = "69695283f7034931b87220e76ef4f6f4.m11eKchDK9Ac7ZIe"
 BATCH_SIZE = 64
+=======
+from pymilvus import MilvusClient, DataType
+from pymilvus.milvus_client.index import IndexParams
+
+os.environ["ZHIPUAI_API_KEY"] = "69695283f7034931b87220e76ef4f6f4.m11eKchDK9Ac7ZIe"
+BATCH_SIZE = 64
+MILVUS_URI = "http://172.27.176.25:19530"
+MILVUS_USER = "root"
+MILVUS_PASSWORD = "ufa4A$hiTyTeP@V$a"
+>>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
 class FileLoader:
     FILE_LOADERS = {
         '.doc':  UnstructuredWordDocumentLoader,
@@ -125,6 +136,7 @@ def get_partition_name(file_path: str) -> str:
 MAX_TEXT_LENGTH = 65535
 MAX_CHUNK_SIZE = 4000
 
+<<<<<<< HEAD
 def truncate_text_by_bytes(text: str, max_bytes: int = 65535) -> str:
     """按字节长度截断文本（Milvus VARCHAR按字节存储）"""
     text_bytes = text.encode('utf-8')
@@ -144,6 +156,8 @@ def truncate_text_by_bytes(text: str, max_bytes: int = 65535) -> str:
     # 如果都失败，直接截断
     return text_bytes[:max_bytes - 1].decode('utf-8', errors='ignore')
 
+=======
+>>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
 def semantic_chunk(content: str) -> list:
     embedding = ZhipuAIEmbeddings(model="text_embedding")
     text_splitter = SemanticChunker(embeddings=embedding)
@@ -156,10 +170,16 @@ def semantic_chunk(content: str) -> list:
         print(f"    [字符切割] 切割为 {len(paragraphs)} 个块")
     result = []
     for p in paragraphs:
+<<<<<<< HEAD
         byte_length = len(p.encode('utf-8'))
         if byte_length > MAX_TEXT_LENGTH:
             print(f"    [截断] 单块字节长度{byte_length}超过{MAX_TEXT_LENGTH}，进行截断")
             p = truncate_text_by_bytes(p, MAX_TEXT_LENGTH)
+=======
+        if len(p) > MAX_TEXT_LENGTH:
+            print(f"    [截断] 单块长度{len(p)}超过{MAX_TEXT_LENGTH}，进行截断")
+            p = p[:MAX_TEXT_LENGTH]
+>>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
         result.append(p)
     return result
 
@@ -173,7 +193,11 @@ def get_batch_embeddings(texts: list) -> list:
     return all_vectors
 
 def batch_embedding_save(file_paths: list):
+<<<<<<< HEAD
     client = get_milvus_client()
+=======
+    client = MilvusClient(uri=MILVUS_URI, user=MILVUS_USER, password=MILVUS_PASSWORD)
+>>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
     print("连接Milvus成功")
 
     collection_name = get_collection_name(file_paths[0])
@@ -196,6 +220,18 @@ def batch_embedding_save(file_paths: list):
             content = FileLoader.load(file_path)
             if len(content.strip()) == 0:
                 raise ValueError("文件内容为空!")
+<<<<<<< HEAD
+=======
+            print(f"  ✅ 文件内容长度: {len(content)} 字符")
+            print(f"  📄 内容预览: {content[:500]}...")
+            target_ips = ["192.167.15.120", "192.167.15.231", "192.167.15.127"]
+            found_ips = [ip for ip in target_ips if ip in content]
+            if found_ips:
+                print(f"  🔍 发现目标IP: {found_ips}")
+            else:
+                print(f"  ⚠️ 未发现目标IP (192.167.15.120/231/127)")
+
+>>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
             paragraphs = semantic_chunk(content)
             if len(paragraphs) == 0:
                 raise ValueError("语义切割结果为空!")
@@ -220,6 +256,7 @@ def batch_embedding_save(file_paths: list):
             if not client.has_partition(collection_name, partition_name):
                 client.create_partition(collection_name, partition_name)
                 print(f"  ✅ 创建 partition: {partition_name}")
+<<<<<<< HEAD
             
             # 最终检查：确保文本字节长度不超过 VARCHAR 最大长度
             MAX_VARCHAR_LENGTH = 65535
@@ -232,6 +269,9 @@ def batch_embedding_save(file_paths: list):
                     text = truncate_text_by_bytes(text, MAX_VARCHAR_LENGTH)
                 data.append({"id": global_id + i, "text": text, "vector": embeddings[i]})
             
+=======
+            data = [{"id": global_id + i, "text": paragraphs[i], "vector": embeddings[i]} for i in range(len(paragraphs))]
+>>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
             global_id += len(paragraphs)
             result = client.insert(collection_name=collection_name, data=data, partition_name=partition_name)
             print(f"  ✅ 已插入 {len(data)} 条数据到 partition[{partition_name}]")
