@@ -7,20 +7,12 @@ from typing import List, Dict, Any
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from langchain_community.embeddings.zhipuai import ZhipuAIEmbeddings
-<<<<<<< HEAD
 from zhipuai import ZhipuAI
 
 # 导入 utils 模块中的 Milvus 工具函数
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.milvus_utils import save_to_milvus, search_milvus
-
-=======
-from pymilvus import MilvusClient, DataType
-from pymilvus.milvus_client.index import IndexParams
-from zhipuai import ZhipuAI
-
->>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
 # 设置智谱API密钥
 os.environ["ZHIPUAI_API_KEY"] = "69695283f7034931b87220e76ef4f6f4.m11eKchDK9Ac7ZIe"
 
@@ -100,83 +92,10 @@ def generate_collection_name(text_content: str, max_length: int = 30) -> str:
     # 添加固定后缀
     return f"{prefix}_embeddings"
 
-<<<<<<< HEAD
 # 使用 utils/milvus_utils 中的 save_to_milvus 函数（已通过 import 导入）
 
 def search_documents(query: str, collection_name: str = "embedding_docx", limit: int = 5) -> List[Dict[str, Any]]:
     """从 Milvus 中检索相关文档，返回检索结果列表（使用 utils/milvus_utils）"""
-=======
-def save_to_milvus(texts: List[str], embeddings: List[List[float]], collection_name: str = "embedding_docx") -> bool:
-    """将文本和向量存入 Milvus"""
-    try:
-        # 连接 Milvus
-        client = MilvusClient(
-            uri="http://172.18.83.231:19530",
-            user="root",
-            password="ufa4A$hiTyTeP@V$a"
-        )
-        print("成功连接到 Milvus!")
-        
-        # 检查集合是否存在，如果存在则删除
-        if client.has_collection(collection_name):
-            client.drop_collection(collection_name)
-            print(f"已删除已存在的集合: {collection_name}")
-        
-        # 创建包含 text 字段的集合
-        schema = client.create_schema(auto_id=False)
-        schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
-        schema.add_field(field_name="text", datatype=DataType.VARCHAR, max_length=65535)
-        schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=len(embeddings[0]))
-        
-        client.create_collection(collection_name=collection_name, schema=schema)
-        print(f"已创建集合: {collection_name}")
-        
-        # 准备数据
-        data = [
-            {
-                "id": i,
-                "text": texts[i],
-                "vector": embeddings[i]
-            }
-            for i in range(len(texts))
-        ]
-        
-        # 插入数据
-        result = client.insert(collection_name=collection_name, data=data)
-        print(f"已插入 {len(data)} 条数据，插入结果: {result}")
-        
-        # 为向量字段创建索引
-        index_params = IndexParams()
-        index_params.add_index(
-            field_name="vector",
-            index_type="IVF_FLAT",
-            metric_type="L2",
-            params={"nlist": 128}
-        )
-        
-        client.create_index(
-            collection_name=collection_name,
-            index_params=index_params
-        )
-        print(f"已为向量字段创建索引")
-        
-        # 加载集合到内存
-        client.load_collection(collection_name=collection_name)
-        print(f"集合已加载到内存")
-        
-        # 查看集合统计信息
-        stats = client.get_collection_stats(collection_name)
-        print(f"集合统计信息: {stats}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"连接 Milvus 失败: {e}")
-        return False
-
-def search_documents(query: str, collection_name: str = "embedding_docx", limit: int = 5) -> List[Dict[str, Any]]:
-    """从 Milvus 中检索相关文档，返回检索结果列表"""
->>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
     print(f"\n=== 检索相关文档 ===")
     
     # 创建 embedding 对象
@@ -189,7 +108,6 @@ def search_documents(query: str, collection_name: str = "embedding_docx", limit:
         print(f"向量化查询失败: {e}")
         return []
     
-<<<<<<< HEAD
     # 使用 utils/milvus_utils 中的 search_milvus 函数搜索
     try:
         results = search_milvus(query_embedding, collection_name=collection_name, limit=limit)
@@ -198,28 +116,6 @@ def search_documents(query: str, collection_name: str = "embedding_docx", limit:
         retrieved_docs = []
         for i, result in enumerate(results):
             text = result["text"]
-=======
-    # 连接 Milvus
-    client = MilvusClient(
-        uri="http://172.18.83.231:19530",
-        user="root",
-        password="ufa4A$hiTyTeP@V$a"
-    )
-    
-    # 搜索 Milvus
-    try:
-        results = client.search(
-            collection_name=collection_name,
-            data=[query_embedding],
-            limit=limit,
-            output_fields=["text"]
-        )
-        
-        # 整理结果
-        retrieved_docs = []
-        for i, result in enumerate(results[0]):
-            text = result["entity"].get("text", "无文本内容")
->>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
             distance = result["distance"]
             retrieved_docs.append({
                 "similarity": 1 - distance,

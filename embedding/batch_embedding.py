@@ -14,7 +14,6 @@ from langchain_experimental.text_splitter import SemanticChunker
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
-<<<<<<< HEAD
 from pymilvus import DataType
 from pymilvus.milvus_client.index import IndexParams
 
@@ -25,16 +24,9 @@ from utils.milvus_utils import get_milvus_client
 
 os.environ["ZHIPUAI_API_KEY"] = "69695283f7034931b87220e76ef4f6f4.m11eKchDK9Ac7ZIe"
 BATCH_SIZE = 64
-=======
-from pymilvus import MilvusClient, DataType
-from pymilvus.milvus_client.index import IndexParams
-
-os.environ["ZHIPUAI_API_KEY"] = "69695283f7034931b87220e76ef4f6f4.m11eKchDK9Ac7ZIe"
-BATCH_SIZE = 64
 MILVUS_URI = "http://172.27.176.25:19530"
 MILVUS_USER = "root"
 MILVUS_PASSWORD = "ufa4A$hiTyTeP@V$a"
->>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
 class FileLoader:
     FILE_LOADERS = {
         '.doc':  UnstructuredWordDocumentLoader,
@@ -207,14 +199,6 @@ def batch_embedding_save(file_paths: list):
             content = FileLoader.load(file_path)
             if len(content.strip()) == 0:
                 raise ValueError("文件内容为空!")
-            print(f"  ✅ 文件内容长度: {len(content)} 字符")
-            print(f"  📄 内容预览: {content[:500]}...")
-            target_ips = ["192.167.15.120", "192.167.15.231", "192.167.15.127"]
-            found_ips = [ip for ip in target_ips if ip in content]
-            if found_ips:
-                print(f"  🔍 发现目标IP: {found_ips}")
-            else:
-                print(f"  ⚠️ 未发现目标IP (192.167.15.120/231/127)")
             paragraphs = semantic_chunk(content)
             if len(paragraphs) == 0:
                 raise ValueError("语义切割结果为空!")

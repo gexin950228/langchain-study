@@ -6,7 +6,6 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 from langchain_community.embeddings.zhipuai import ZhipuAIEmbeddings
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
-<<<<<<< HEAD
 
 # 导入 utils 模块中的 Milvus 工具函数
 import sys
@@ -14,14 +13,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.milvus_utils import get_milvus_client
 
 os.environ["ZHIPUAI_API_KEY"] = "69695283f7034931b87220e76ef4f6f4.m11eKchDK9Ac7ZIe"
-=======
-from pymilvus import MilvusClient
-
-os.environ["ZHIPUAI_API_KEY"] = "69695283f7034931b87220e76ef4f6f4.m11eKchDK9Ac7ZIe"
-MILVUS_URI = "http://172.27.176.25:19530"
-MILVUS_USER = "root"
-MILVUS_PASSWORD = "ufa4A$hiTyTeP@V$a"
->>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
 COLLECTION_NAME = "group_power_industry_operation_monitoring_system"
 
 def get_query_embedding(query: str) -> list:
@@ -41,17 +32,12 @@ def ask_llm(question: str, context: str) -> str:
     return llm.invoke(messages).content.strip()
 
 def search_all_partitions(collection_name: str, query: str, limit: int = 5):
-<<<<<<< HEAD
     client = get_milvus_client()
-=======
-    client = MilvusClient(uri=MILVUS_URI, user=MILVUS_USER, password=MILVUS_PASSWORD)
->>>>>>> f9ba5d08b4c35630a8f536eeb8f2032fdf1229fe
     print(f"连接Milvus成功")
 
     if not client.has_collection(collection_name):
         print(f"集合不存在: {collection_name}")
         return
-
     if not client.get_load_state(collection_name)["state"] == "Loaded":
         client.load_collection(collection_name)
         print(f"集合已加载到内存")
