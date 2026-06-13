@@ -65,11 +65,6 @@ class FileLoader:
                     sheet_text += df.to_string(index=False)
                     all_sheets.append(sheet_text)
                 result = "\n".join(all_sheets)
-                print(f"    [FileLoader] pandas+{engine}加载{ext}文件成功，共{len(xls.sheet_names)}个sheet，内容长度: {len(result)}")
-                return result
-            except ImportError:
-                print(f"    [FileLoader] {engine}未安装，回退到LangChain Loader")
-            except Exception as e:
                 print(f"    [FileLoader] pandas加载失败({e})，回退到LangChain Loader")
         loader_cls = cls.FILE_LOADERS.get(ext)
         if not loader_cls:
@@ -199,6 +194,16 @@ def batch_embedding_save(file_paths: list):
             content = FileLoader.load(file_path)
             if len(content.strip()) == 0:
                 raise ValueError("文件内容为空!")
+<<<<<<< Updated upstream
+=======
+            target_ips = ["192.167.15.120", "192.167.15.231", "192.167.15.127"]
+            found_ips = [ip for ip in target_ips if ip in content]
+            if found_ips:
+                print(f"  🔍 发现目标IP: {found_ips}")
+            else:
+                print(f"  ⚠️ 未发现目标IP (192.167.15.120/231/127)")
+
+>>>>>>> Stashed changes
             paragraphs = semantic_chunk(content)
             if len(paragraphs) == 0:
                 raise ValueError("语义切割结果为空!")
